@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>レビュー履歴</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+</head>
+<body class="container mt-4">
+    <h1 th:text="${repository.name} + ' のレビュー履歴'">レビュー履歴</h1>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th><th>ステータス</th><th>開始日時</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="session : ${sessions}">
+                <td th:text="${session.id}"></td>
+                <td th:text="${session.status}"></td>
+                <td th:text="${session.startedAt}"></td>
+                <td>
+                    <a th:href="@{'/repository/reviews/' + ${session.id} + '/results'}" class="btn btn-sm btn-info">結果を見る</a>
+                    <form th:action="@{'/repository/reviews/' + ${session.id} + '/delete'}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger">削除</button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a th:href="@{/repository}" class="btn btn-secondary">戻る</a>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>レビュー結果</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+</head>
+<body class="container mt-4">
+    <h1>レビュー結果ページ</h1>
+    <p>対象リポジトリパス: <span th:text="${repoPath}"></span></p>
+    <a th:href="@{/repository}" class="btn btn-secondary">戻る</a>
+</body>
+</html>

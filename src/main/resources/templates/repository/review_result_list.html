@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>レビュー結果一覧</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+</head>
+<body class="container mt-4">
+    <h1>レビュー結果</h1>
+
+    <p>セッションID: <span th:text="${session.id}"></span></p>
+    <p>ステータス: <span th:text="${session.status}"></span></p>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ファイル</th><th>コメント</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="result : ${results}">
+                <td th:text="${result.filePath}"></td>
+                <td th:text="${result.comment}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a th:href="@{'/repository/reviews?id=' + ${session.repository.id}}" class="btn btn-secondary">レビュー履歴へ戻る</a>
+</body>
+</html>
