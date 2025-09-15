@@ -1,0 +1,197 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='リポジトリ一覧', content=~{::content})">
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-folder me-2 text-primary"></i>
+                    リポジトリ管理
+                </h1>
+                <a href="/repositories/new" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>新規リポジトリ追加
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 検索フォーム -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" action="/repositories" class="row g-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" name="keyword"
+                                       th:value="${keyword}" placeholder="リポジトリ名で検索...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2 d-md-flex">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-search me-2"></i>検索
+                                </button>
+                                <a href="/repositories" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>クリア
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- リポジトリ一覧 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        リポジトリ一覧
+                        <span class="badge bg-secondary ms-2" th:text="${#lists.size(repositories)}"></span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(repositories)}" class="text-center py-5">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-3">
+                            <span th:if="${keyword}">検索条件に一致するリポジトリが見つかりませんでした。</span>
+                            <span th:unless="${keyword}">まだリポジトリが登録されていません。</span>
+                        </p>
+                        <a href="/repositories/new" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>新規リポジトリ追加
+                        </a>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(repositories)}">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                <tr>
+                                    <th style="width: 25%">リポジトリ名</th>
+                                    <th style="width: 15%">ブランチ</th>
+                                    <th style="width: 20%">最終レビュー</th>
+                                    <th style="width: 15%">ステータス</th>
+                                    <th style="width: 10%">問題数</th>
+                                    <th style="width: 15%" class="text-end">アクション</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="repo : ${repositories}">
+                                    <td>
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <a th:href="@{/repositories/{id}(id=${repo.id})}"
+                                                   th:text="${repo.name}"
+                                                   class="text-decoration-none"></a>
+                                            </h6>
+                                            <small class="text-muted" th:text="${repo.cloneUrl}"></small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info" th:text="${repo.branchName}"></span>
+                                    </td>
+                                    <td>
+                                        <div th:if="${repo.lastReviewDate}">
+                                            <small th:text="${#temporals.format(repo.lastReviewDate, 'yyyy/MM/dd HH:mm')}"></small>
+                                        </div>
+                                        <div th:unless="${repo.lastReviewDate}">
+                                            <small class="text-muted">未実行</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                            <span th:if="${repo.lastReviewStatus}"
+                                                  th:class="'badge ' + (${repo.lastReviewStatus.name()} == 'COMPLETED' ? 'bg-success' :
+                                                          ${repo.lastReviewStatus.name()} == 'FAILED' ? 'bg-danger' :
+                                                          ${repo.lastReviewStatus.name()} == 'RUNNING' ? 'bg-primary' : 'bg-secondary')"
+                                                  th:text="${repo.lastReviewStatus.name() == 'COMPLETED' ? '完了' :
+                                                           repo.lastReviewStatus.name() == 'FAILED' ? '失敗' :
+                                                           repo.lastReviewStatus.name() == 'RUNNING' ? '実行中' :
+                                                           repo.lastReviewStatus.name() == 'PENDING' ? '待機中' : 'キャンセル'}"></span>
+                                        <span th:unless="${repo.lastReviewStatus}" class="badge bg-secondary">未実行</span>
+                                    </td>
+                                    <td>
+                                            <span th:if="${repo.totalIssues != null and repo.totalIssues > 0}"
+                                                  class="badge bg-warning text-dark">
+                                                <span th:text="${repo.totalIssues}"></span>
+                                            </span>
+                                        <span th:unless="${repo.totalIssues != null and repo.totalIssues > 0}"
+                                              class="text-muted">-</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group" role="group">
+                                            <a th:href="@{/reviews/execute(repositoryId=${repo.id})}"
+                                               class="btn btn-sm btn-success" title="レビュー実行">
+                                                <i class="fas fa-play"></i>
+                                            </a>
+                                            <a th:href="@{/repositories/{id}/exclusions(id=${repo.id})}"
+                                               class="btn btn-sm btn-info" title="除外設定">
+                                                <i class="fas fa-filter"></i>
+                                            </a>
+                                            <a th:href="@{/repositories/{id}/edit(id=${repo.id})}"
+                                               class="btn btn-sm btn-outline-secondary" title="編集">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    title="削除"
+                                                    th:onclick="|confirmDelete(${repo.id}, '${repo.name}')|">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        削除確認
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>リポジトリ「<span id="deleteTargetName"></span>」を削除しますか？</p>
+                    <p class="text-muted small">この操作により、関連するレビュー履歴と結果もすべて削除されます。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        キャンセル
+                    </button>
+                    <form id="deleteForm" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>削除
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmDelete(id, name) {
+            document.getElementById('deleteTargetName').textContent = name;
+            document.getElementById('deleteForm').action = '/repositories/' + id + '/delete';
+
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
+</div>
+</html>

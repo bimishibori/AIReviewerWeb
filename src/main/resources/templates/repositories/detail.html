@@ -1,0 +1,230 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='リポジトリ詳細', content=~{::content})">
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-folder-open me-2 text-primary"></i>
+                    <span th:text="${repository.name}">Repository Name</span>
+                </h1>
+                <div class="btn-group" role="group">
+                    <a th:href="@{/reviews/execute(repositoryId=${repository.id})}" class="btn btn-success">
+                        <i class="fas fa-play me-2"></i>レビュー実行
+                    </a>
+                    <a th:href="@{/repositories/{id}/edit(id=${repository.id})}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit me-2"></i>編集
+                    </a>
+                    <button type="button" class="btn btn-outline-danger"
+                            th:onclick="|confirmDelete(${repository.id}, '${repository.name}')|">
+                        <i class="fas fa-trash me-2"></i>削除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 基本情報 -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        基本情報
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">リポジトリ名</dt>
+                        <dd class="col-sm-9" th:text="${repository.name}"></dd>
+
+                        <dt class="col-sm-3">クローンURL</dt>
+                        <dd class="col-sm-9">
+                            <code th:text="${repository.cloneUrl}"></code>
+                        </dd>
+
+                        <dt class="col-sm-3">ブランチ</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-info" th:text="${repository.branchName}"></span>
+                        </dd>
+
+                        <dt class="col-sm-3">説明</dt>
+                        <dd class="col-sm-9">
+                            <span th:if="${repository.description}" th:text="${repository.description}"></span>
+                            <span th:unless="${repository.description}" class="text-muted">説明なし</span>
+                        </dd>
+
+                        <dt class="col-sm-3">作成日時</dt>
+                        <dd class="col-sm-9" th:text="${#temporals.format(repository.createdAt, 'yyyy年MM月dd日 HH:mm')}"></dd>
+
+                        <dt class="col-sm-3">更新日時</dt>
+                        <dd class="col-sm-9" th:text="${#temporals.format(repository.updatedAt, 'yyyy年MM月dd日 HH:mm')}"></dd>
+
+                        <dt class="col-sm-3">ステータス</dt>
+                        <dd class="col-sm-9">
+                            <span th:if="${repository.isActive}" class="badge bg-success">アクティブ</span>
+                            <span th:unless="${repository.isActive}" class="badge bg-secondary">非アクティブ</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- 最新レビュー情報 -->
+            <div class="card mb-4" th:if="${repository.latestReview}">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-search me-2"></i>
+                        最新レビュー情報
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">実行日時</dt>
+                        <dd class="col-sm-9" th:text="${#temporals.format(repository.latestReview.startedAt, 'yyyy年MM月dd日 HH:mm')}"></dd>
+
+                        <dt class="col-sm-3">ステータス</dt>
+                        <dd class="col-sm-9">
+                            <span th:class="'badge ' + (${repository.latestReview.status.name()} == 'COMPLETED' ? 'bg-success' :
+                                          ${repository.latestReview.status.name()} == 'FAILED' ? 'bg-danger' :
+                                          ${repository.latestReview.status.name()} == 'RUNNING' ? 'bg-primary' : 'bg-secondary')"
+                                  th:text="${repository.latestReview.status.name() == 'COMPLETED' ? '完了' :
+                                           repository.latestReview.status.name() == 'FAILED' ? '失敗' :
+                                           repository.latestReview.status.name() == 'RUNNING' ? '実行中' :
+                                           repository.latestReview.status.name() == 'PENDING' ? '待機中' : 'キャンセル'}"></span>
+                        </dd>
+
+                        <dt class="col-sm-3" th:if="${repository.latestReview.completedAt}">完了日時</dt>
+                        <dd class="col-sm-9" th:if="${repository.latestReview.completedAt}"
+                            th:text="${#temporals.format(repository.latestReview.completedAt, 'yyyy年MM月dd日 HH:mm')}"></dd>
+
+                        <dt class="col-sm-3" th:if="${repository.latestReview.totalFiles}">対象ファイル数</dt>
+                        <dd class="col-sm-9" th:if="${repository.latestReview.totalFiles}">
+                            <span th:text="${repository.latestReview.totalFiles}"></span> ファイル
+                        </dd>
+
+                        <dt class="col-sm-3" th:if="${repository.latestReview.totalIssues}">検出問題数</dt>
+                        <dd class="col-sm-9" th:if="${repository.latestReview.totalIssues}">
+                            <span class="badge bg-warning text-dark" th:text="${repository.latestReview.totalIssues}"></span> 件
+                        </dd>
+
+                        <dt class="col-sm-3" th:if="${repository.latestReview.duration}">実行時間</dt>
+                        <dd class="col-sm-9" th:if="${repository.latestReview.duration}">
+                            <span th:text="${repository.latestReview.duration}"></span> 分
+                        </dd>
+                    </dl>
+
+                    <div class="mt-3" th:if="${repository.latestReview.status.name() == 'COMPLETED'}">
+                        <a th:href="@{/reviews/{id}/results(id=${repository.latestReview.id})}" class="btn btn-outline-primary">
+                            <i class="fas fa-eye me-2"></i>結果を確認
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- サイドバー -->
+        <div class="col-md-4">
+            <!-- クイックアクション -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        クイックアクション
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a th:href="@{/reviews/execute(repositoryId=${repository.id})}" class="btn btn-success">
+                            <i class="fas fa-play me-2"></i>レビュー実行
+                        </a>
+                        <a th:href="@{/repositories/{id}/exclusions(id=${repository.id})}" class="btn btn-info">
+                            <i class="fas fa-filter me-2"></i>除外設定
+                        </a>
+                        <a th:href="@{/reviews/history(repositoryId=${repository.id})}" class="btn btn-outline-secondary">
+                            <i class="fas fa-history me-2"></i>レビュー履歴
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 統計情報 -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        統計情報
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="border rounded p-2">
+                                <div class="h5 mb-1 text-primary" th:text="${repository.exclusionCount}">0</div>
+                                <small class="text-muted">除外設定</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="border rounded p-2">
+                                <div class="h5 mb-1 text-info">0</div>
+                                <small class="text-muted">総レビュー回数</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <div class="h5 mb-1 text-success">0</div>
+                                <small class="text-muted">成功回数</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <div class="h5 mb-1 text-danger">0</div>
+                                <small class="text-muted">失敗回数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        削除確認
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>リポジトリ「<span id="deleteTargetName"></span>」を削除しますか？</p>
+                    <p class="text-muted small">この操作により、関連するレビュー履歴と結果もすべて削除されます。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        キャンセル
+                    </button>
+                    <form id="deleteForm" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>削除
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmDelete(id, name) {
+            document.getElementById('deleteTargetName').textContent = name;
+            document.getElementById('deleteForm').action = '/repositories/' + id + '/delete';
+
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
+</div>
+</html>

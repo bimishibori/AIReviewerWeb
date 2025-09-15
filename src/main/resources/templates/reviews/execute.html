@@ -1,0 +1,293 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='レビュー実行', content=~{::content})">
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/repositories">リポジトリ</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/repositories/{id}(id=${repository.id})}" th:text="${repository.name}"></a>
+                    </li>
+                    <li class="breadcrumb-item active">レビュー実行</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-play me-2 text-success"></i>
+                        コードレビュー実行
+                        <small class="text-muted">- <span th:text="${repository.name}"></span></small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- リポジトリ情報 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">
+                                <i class="fas fa-info-circle me-2"></i>リポジトリ情報
+                            </h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">リポジトリ名</dt>
+                                <dd class="col-sm-8" th:text="${repository.name}"></dd>
+                                <dt class="col-sm-4">クローンURL</dt>
+                                <dd class="col-sm-8">
+                                    <small><code th:text="${repository.cloneUrl}"></code></small>
+                                </dd>
+                                <dt class="col-sm-4">ブランチ</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-info" th:text="${repository.branchName}"></span>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">
+                                <i class="fas fa-filter me-2"></i>除外設定
+                            </h6>
+                            <div th:if="${#lists.isEmpty(repository.exclusions)}" class="text-muted">
+                                除外設定なし
+                            </div>
+                            <div th:if="${!#lists.isEmpty(repository.exclusions)}">
+                                <span class="badge bg-secondary" th:text="${#lists.size(repository.exclusions)} + ' 件'"></span>
+                                <a th:href="@{/exclusions(repositoryId=${repository.id})}" class="btn btn-link btn-sm p-0 ms-2">
+                                    設定を確認
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 実行オプション -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary">
+                                <i class="fas fa-cog me-2"></i>実行オプション
+                            </h6>
+                            <form id="reviewForm" th:action="@{/reviews/execute}" method="post">
+                                <input type="hidden" name="repositoryId" th:value="${repository.id}">
+
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" name="forcePull" id="forcePull" value="true">
+                                    <label class="form-check-label" for="forcePull">
+                                        強制プル実行
+                                        <small class="text-muted d-block">ローカルリポジトリを強制的に最新版に更新します</small>
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- レビュー実行予定の流れ -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary">
+                                <i class="fas fa-list-ol me-2"></i>実行予定の処理
+                            </h6>
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">1. リポジトリの準備</h6>
+                                        <p class="text-muted small mb-0">
+                                            リポジトリのクローン/プル、指定ブランチへの切り替えを行います
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-info"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">2. ファイルスキャン</h6>
+                                        <p class="text-muted small mb-0">
+                                            レビュー対象ファイルを特定し、除外設定を適用します
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-warning"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">3. コードレビュー実行</h6>
+                                        <p class="text-muted small mb-0">
+                                            各ファイルに対してコード品質チェックを実行します
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">4. 結果の保存・表示</h6>
+                                        <p class="text-muted small mb-0">
+                                            レビュー結果をデータベースに保存し、結果画面を表示します
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 実行ボタン -->
+                    <div class="text-center">
+                        <button type="button" class="btn btn-success btn-lg" onclick="startReview()" id="executeButton">
+                            <i class="fas fa-play me-2"></i>レビューを開始
+                        </button>
+                        <div class="mt-3">
+                            <a th:href="@{/repositories/{id}(id=${repository.id})}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-2"></i>リポジトリに戻る
+                            </a>
+                            <a th:href="@{/exclusions(repositoryId=${repository.id})}" class="btn btn-outline-primary">
+                                <i class="fas fa-filter me-2"></i>除外設定を確認
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 注意事項 -->
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        注意事項
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li>レビュー実行には時間がかかる場合があります。ページを閉じずにお待ちください。</li>
+                        <li>大きなプロジェクトの場合、初回実行時には特に時間がかかります。</li>
+                        <li>実行中は他のレビューを同時に開始できません。</li>
+                        <li>ネットワーク接続が必要です。リポジトリにアクセスできることを確認してください。</li>
+                        <li>除外設定は実行前に確認・調整することをお勧めします。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 最近のレビュー履歴 -->
+            <div class="card mt-4" th:if="${repository.reviewHistories != null and !#lists.isEmpty(repository.reviewHistories)}">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        最近のレビュー履歴（直近5件）
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th>実行日時</th>
+                                <th>ステータス</th>
+                                <th>実行時間</th>
+                                <th>問題数</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="history, iterStat : ${repository.reviewHistories}" th:if="${iterStat.index < 5}">
+                                <td th:text="${#temporals.format(history.startedAt, 'MM/dd HH:mm')}"></td>
+                                <td>
+                                        <span th:class="'badge ' + (${history.status.name()} == 'COMPLETED' ? 'bg-success' :
+                                                      ${history.status.name()} == 'FAILED' ? 'bg-danger' :
+                                                      ${history.status.name()} == 'RUNNING' ? 'bg-primary' : 'bg-secondary')"
+                                              th:text="${history.status.name() == 'COMPLETED' ? '完了' :
+                                                       history.status.name() == 'FAILED' ? '失敗' :
+                                                       history.status.name() == 'RUNNING' ? '実行中' :
+                                                       history.status.name() == 'PENDING' ? '待機中' : 'キャンセル'}"></span>
+                                </td>
+                                <td>
+                                        <span th:if="${history.completedAt}"
+                                              th:text="${T(java.time.Duration).between(history.startedAt, history.completedAt).toMinutes()} + '分'"></span>
+                                    <span th:unless="${history.completedAt}" class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <span th:if="${history.totalIssues}" th:text="${history.totalIssues} + '件'"></span>
+                                    <span th:unless="${history.totalIssues}" class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <a th:if="${history.status.name() == 'COMPLETED'}"
+                                       th:href="@{/reviews/{id}/results(id=${history.id})}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        結果表示
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -22px;
+            top: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #dee2e6;
+        }
+
+        .timeline-content h6 {
+            color: #495057;
+        }
+    </style>
+
+    <script>
+        function startReview() {
+            const button = document.getElementById('executeButton');
+            const form = document.getElementById('reviewForm');
+
+            // ボタンを無効化
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>開始中...';
+
+            // フォーム送信
+            form.submit();
+        }
+
+        // ページ離脱警告
+        let reviewStarted = false;
+
+        window.addEventListener('beforeunload', function(e) {
+            if (reviewStarted) {
+                e.preventDefault();
+                e.returnValue = 'レビューが実行中です。ページを離れますか？';
+                return 'レビューが実行中です。ページを離れますか？';
+            }
+        });
+
+        // フォーム送信時にフラグを設定
+        document.getElementById('reviewForm').addEventListener('submit', function() {
+            reviewStarted = true;
+        });
+    </script>
+</div>
+</html>

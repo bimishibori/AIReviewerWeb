@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org"
+      th:replace="layout :: base(title=${repositoryId != null ? 'リポジトリ編集' : 'リポジトリ作成'}, content=~{::content})">
+<div th:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i th:class="${repositoryId != null ? 'fas fa-edit' : 'fas fa-plus'} me-2"></i>
+                        <span th:text="${repositoryId != null ? 'リポジトリ編集' : 'リポジトリ作成'}"></span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="${repositoryId != null ? '/repositories/' + repositoryId + '/edit' : '/repositories/new'}"
+                          th:object="${repositoryForm}" method="post" novalidate>
+
+                        <!-- リポジトリ名 -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">
+                                リポジトリ名 <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control"
+                                   th:field="*{name}"
+                                   th:class="${#fields.hasErrors('name')} ? 'form-control is-invalid' : 'form-control'"
+                                   id="name" placeholder="例: MyUnityProject">
+                            <div th:if="${#fields.hasErrors('name')}" class="invalid-feedback">
+                                <span th:errors="*{name}"></span>
+                            </div>
+                            <div class="form-text">
+                                わかりやすいプロジェクト名を入力してください。
+                            </div>
+                        </div>
+
+                        <!-- クローンURL -->
+                        <div class="mb-3">
+                            <label for="cloneUrl" class="form-label">
+                                クローンURL <span class="text-danger">*</span>
+                            </label>
+                            <input type="url" class="form-control"
+                                   th:field="*{cloneUrl}"
+                                   th:class="${#fields.hasErrors('cloneUrl')} ? 'form-control is-invalid' : 'form-control'"
+                                   id="cloneUrl" placeholder="例: https://github.com/user/repo.git">
+                            <div th:if="${#fields.hasErrors('cloneUrl')}" class="invalid-feedback">
+                                <span th:errors="*{cloneUrl}"></span>
+                            </div>
+                            <div class="form-text">
+                                GitリポジトリのクローンURLを入力してください。HTTPS、SSH、Git形式に対応しています。
+                            </div>
+                        </div>
+
+                        <!-- ブランチ名 -->
+                        <div class="mb-3">
+                            <label for="branchName" class="form-label">
+                                ブランチ名 <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control"
+                                   th:field="*{branchName}"
+                                   th:class="${#fields.hasErrors('branchName')} ? 'form-control is-invalid' : 'form-control'"
+                                   id="branchName" placeholder="main">
+                            <div th:if="${#fields.hasErrors('branchName')}" class="invalid-feedback">
+                                <span th:errors="*{branchName}"></span>
+                            </div>
+                            <div class="form-text">
+                                レビュー対象のブランチ名を指定してください。
+                            </div>
+                        </div>
+
+                        <!-- 説明 -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label">説明</label>
+                            <textarea class="form-control"
+                                      th:field="*{description}"
+                                      th:class="${#fields.hasErrors('description')} ? 'form-control is-invalid' : 'form-control'"
+                                      id="description" rows="3"
+                                      placeholder="このプロジェクトの説明を入力してください（任意）"></textarea>
+                            <div th:if="${#fields.hasErrors('description')}" class="invalid-feedback">
+                                <span th:errors="*{description}"></span>
+                            </div>
+                        </div>
+
+                        <!-- 送信ボタン -->
+                        <div class="d-flex justify-content-between">
+                            <a href="/repositories" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>戻る
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i th:class="${repositoryId != null ? 'fas fa-save' : 'fas fa-plus'} me-2"></i>
+                                    <span th:text="${repositoryId != null ? '更新' : '作成'}"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 注意事項 -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        注意事項
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li>クローンURLは正確に入力してください。認証が必要な場合は事前に設定が必要です。</li>
+                        <li>ブランチ名は大文字小文字を区別します。</li>
+                        <li>リポジトリ作成後、除外設定でレビュー対象から除外するファイルやディレクトリを設定できます。</li>
+                        <li>Unityプロジェクト特有のファイル（.meta、Library/など）は自動的に除外されます。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>

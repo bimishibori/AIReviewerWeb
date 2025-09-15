@@ -1,0 +1,260 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='レビュー結果', content=~{::content})">
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-search me-2 text-success"></i>
+                    レビュー結果
+                </h1>
+                <div class="btn-group" role="group">
+                    <a href="/repositories" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>リポジトリ一覧
+                    </a>
+                    <a href="/reviews/history" class="btn btn-outline-primary">
+                        <i class="fas fa-history me-2"></i>履歴一覧
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- サマリーカード -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">総問題数</h5>
+                            <h3 th:text="${summary.totalIssues}">0</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">対象ファイル数</h5>
+                            <h3 th:text="${summary.fileCount}">0</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-file-code fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">重大な問題</h5>
+                            <h3 th:text="${summary.severityCount['CRITICAL'] ?: 0}">0</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">エラー</h5>
+                            <h3 th:text="${summary.severityCount['ERROR'] ?: 0}">0</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- メインコンテンツ -->
+        <div class="col-md-8">
+            <!-- フィルター -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>フィルター・ソート
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" th:action="@{/reviews/{id}/results(id=${reviewHistoryId})}" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">重要度</label>
+                            <select class="form-select form-select-sm" name="severity">
+                                <option value="">すべて</option>
+                                <option value="CRITICAL">重大</option>
+                                <option value="ERROR">エラー</option>
+                                <option value="WARNING">警告</option>
+                                <option value="INFO">情報</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ソート</label>
+                            <select class="form-select form-select-sm" name="sortBy">
+                                <option value="filePath" th:selected="${sortBy == 'filePath'}">ファイル名</option>
+                                <option value="severity" th:selected="${sortBy == 'severity'}">重要度</option>
+                                <option value="lineNumber" th:selected="${sortBy == 'lineNumber'}">行番号</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">順序</label>
+                            <select class="form-select form-select-sm" name="sortDir">
+                                <option value="asc" th:selected="${sortDir == 'asc'}">昇順</option>
+                                <option value="desc" th:selected="${sortDir == 'desc'}">降順</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="fas fa-search me-1"></i>適用
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 結果一覧 -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-list me-2"></i>検出された問題一覧
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(results.content)}" class="text-center py-5">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-success">問題が見つかりませんでした！</h5>
+                        <p class="text-muted">コードは良好な状態です。</p>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(results.content)}">
+                        <div th:each="result : ${results.content}" class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-2">
+                                        <i class="fas fa-file-code me-2 text-muted"></i>
+                                        <span th:text="${result.filePath}"></span>
+                                        <span th:if="${result.lineNumber}" class="text-muted">
+                                            :<span th:text="${result.lineNumber}"></span>
+                                        </span>
+                                    </h6>
+                                    <p class="mb-2" th:text="${result.message}"></p>
+                                    <div th:if="${result.suggestion}" class="alert alert-info alert-sm mb-2">
+                                        <small><strong>推奨:</strong> <span th:text="${result.suggestion}"></span></small>
+                                    </div>
+                                    <div th:if="${result.codeSnippet}" class="mb-2">
+                                        <small class="text-muted">コードスニペット:</small>
+                                        <pre class="bg-light p-2 rounded"><code th:text="${result.codeSnippet}"></code></pre>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <span th:if="${result.ruleId}">
+                                            ルール: <code th:text="${result.ruleId}"></code>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ms-3">
+                                    <span th:class="'badge ' +
+                                          (${result.severity} == 'CRITICAL' ? 'bg-danger' :
+                                           ${result.severity} == 'ERROR' ? 'bg-warning' :
+                                           ${result.severity} == 'WARNING' ? 'bg-info' : 'bg-secondary')"
+                                          th:text="${result.severity == 'CRITICAL' ? '重大' :
+                                                   result.severity == 'ERROR' ? 'エラー' :
+                                                   result.severity == 'WARNING' ? '警告' : '情報'}"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ページネーション -->
+                        <nav th:if="${results.totalPages > 1}">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item" th:classappend="${!results.hasPrevious} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/reviews/{id}/results(id=${reviewHistoryId}, page=${currentPage - 1}, sortBy=${sortBy}, sortDir=${sortDir})}">前へ</a>
+                                </li>
+                                <li th:each="i : ${#numbers.sequence(0, results.totalPages - 1)}"
+                                    class="page-item" th:classappend="${i == currentPage} ? 'active'">
+                                    <a class="page-link" th:href="@{/reviews/{id}/results(id=${reviewHistoryId}, page=${i}, sortBy=${sortBy}, sortDir=${sortDir})}" th:text="${i + 1}"></a>
+                                </li>
+                                <li class="page-item" th:classappend="${!results.hasNext} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/reviews/{id}/results(id=${reviewHistoryId}, page=${currentPage + 1}, sortBy=${sortBy}, sortDir=${sortDir})}">次へ</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- サイドバー -->
+        <div class="col-md-4">
+            <!-- 重要度別統計 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>重要度別統計
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div th:each="severity : ${summary.severityCount}" class="d-flex justify-content-between align-items-center mb-2">
+                        <span th:text="${severity.key == 'CRITICAL' ? '重大' :
+                                       severity.key == 'ERROR' ? 'エラー' :
+                                       severity.key == 'WARNING' ? '警告' : '情報'}"></span>
+                        <span class="badge bg-secondary" th:text="${severity.value}"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上位の問題 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>頻出問題TOP5
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div th:each="issue : ${summary.topIssues}" class="mb-3">
+                        <h6 class="mb-1 small" th:text="${issue.message}"></h6>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted" th:text="${issue.ruleId}"></small>
+                            <span class="badge bg-warning text-dark" th:text="${issue.count} + '件'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ファイル別統計 -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>問題の多いファイル
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div th:each="file : ${summary.fileStatistics}" class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <small th:text="${#strings.substringAfterLast(file.filePath, '/')}" class="text-truncate me-2"></small>
+                            <span class="badge bg-warning text-dark" th:text="${file.issueCount}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>

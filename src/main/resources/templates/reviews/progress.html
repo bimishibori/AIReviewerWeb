@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='レビュー進行状況', content=~{::content})">
+<div th:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2 text-primary"></i>
+                        レビュー実行中
+                        <span class="badge bg-primary ms-2" id="statusBadge" th:text="${progress.status.name() == 'RUNNING' ? '実行中' : progress.status.name()}"></span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 進行状況バー -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">進行状況</h6>
+                            <span class="text-muted" id="progressText" th:text="${progress.progress} + '%'"></span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                 role="progressbar"
+                                 th:style="'width: ' + ${progress.progress} + '%'"
+                                 id="progressBar">
+                                <span id="progressPercentage" th:text="${progress.progress} + '%'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 現在の状況 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-file-code me-2 text-info"></i>処理中ファイル
+                                    </h6>
+                                    <p class="card-text" id="currentFile" th:text="${progress.currentFile ?: '準備中...'}"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>発見された問題
+                                    </h6>
+                                    <p class="card-text">
+                                        <span class="h5 text-warning" id="foundIssues" th:text="${progress.foundIssues}"></span> 件
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 統計情報 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="h4 text-primary" id="processedFiles" th:text="${progress.processedFiles}">0</div>
+                                <small class="text-muted">処理済みファイル</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="h4 text-secondary" id="totalFiles" th:text="${progress.totalFiles}">0</div>
+                                <small class="text-muted">総ファイル数</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="h4 text-info" id="elapsedTime" th:text="${progress.elapsedTime / 1000} + '秒'">0秒</div>
+                                <small class="text-muted">経過時間</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="h4 text-success" id="estimatedTime"
+                                     th:text="${progress.estimatedTimeRemaining != null ? (progress.estimatedTimeRemaining / 1000) + '秒' : '計算中'}">計算中</div>
+                                <small class="text-muted">残り時間（推定）</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- アクションボタン -->
+                    <div class="text-center">
+                        <button type="button" class="btn btn-outline-danger" onclick="cancelReview()" id="cancelButton">
+                            <i class="fas fa-stop me-2"></i>キャンセル
+                        </button>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                レビューが完了すると自動的に結果画面に移動します
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ログ表示エリア -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-terminal me-2"></i>実行ログ
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="logArea" class="bg-dark text-light p-3 rounded" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                        <div class="log-entry">レビューを開始しています...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let reviewHistoryId = /*[[${progress.reviewHistoryId}]]*/ 0;
+        let pollInterval;
+        let logMessages = [];
+
+        function updateProgress() {
+            fetch(`/api/reviews/${reviewHistoryId}/progress`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const progress = data.data;
+
+                        // 進行状況バー更新
+                        document.getElementById('progressBar').style.width = progress.progress + '%';
+                        document.getElementById('progressPercentage').textContent = progress.progress + '%';
+                        document.getElementById('progressText').textContent = progress.progress + '%';
+
+                        // 統計情報更新
+                        document.getElementById('processedFiles').textContent = progress.processedFiles;
+                        document.getElementById('totalFiles').textContent = progress.totalFiles;
+                        document.getElementById('foundIssues').textContent = progress.foundIssues;
+                        document.getElementById('currentFile').textContent = progress.currentFile || '準備中...';
+                        document.getElementById('elapsedTime').textContent = Math.floor(progress.elapsedTime / 1000) + '秒';
+
+                        if (progress.estimatedTimeRemaining) {
+                            document.getElementById('estimatedTime').textContent = Math.floor(progress.estimatedTimeRemaining / 1000) + '秒';
+                        }
+
+                        // ステータス更新
+                        const statusBadge = document.getElementById('statusBadge');
+                        if (progress.status === 'COMPLETED') {
+                            statusBadge.textContent = '完了';
+                            statusBadge.className = 'badge bg-success ms-2';
+                            clearInterval(pollInterval);
+                            addLogEntry('レビューが完了しました。結果画面に移動します...');
+                            setTimeout(() => {
+                                window.location.href = `/reviews/${reviewHistoryId}/results`;
+                            }, 2000);
+                        } else if (progress.status === 'FAILED') {
+                            statusBadge.textContent = '失敗';
+                            statusBadge.className = 'badge bg-danger ms-2';
+                            clearInterval(pollInterval);
+                            addLogEntry('レビューが失敗しました。');
+                        } else if (progress.status === 'CANCELLED') {
+                            statusBadge.textContent = 'キャンセル';
+                            statusBadge.className = 'badge bg-secondary ms-2';
+                            clearInterval(pollInterval);
+                            addLogEntry('レビューがキャンセルされました。');
+                        }
+
+                        // ログエントリ追加
+                        if (progress.currentFile) {
+                            addLogEntry(`処理中: ${progress.currentFile}`);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('進行状況の取得に失敗しました:', error);
+                    addLogEntry('エラー: 進行状況の取得に失敗しました');
+                });
+        }
+
+        function addLogEntry(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+
+            logMessages.push(entry);
+            if (logMessages.length > 50) {
+                logMessages = logMessages.slice(-50);
+            }
+
+            const logArea = document.getElementById('logArea');
+            const entryElement = document.createElement('div');
+            entryElement.className = 'log-entry';
+            entryElement.textContent = entry;
+            logArea.appendChild(entryElement);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function cancelReview() {
+            if (confirm('レビューをキャンセルしますか？')) {
+                // TODO: キャンセル処理のAPI実装
+                addLogEntry('キャンセル要求を送信中...');
+            }
+        }
+
+        // ページ読み込み時にポーリング開始
+        document.addEventListener('DOMContentLoaded', function() {
+            addLogEntry('レビューを開始しました');
+            pollInterval = setInterval(updateProgress, 2000);
+            updateProgress(); // 初回実行
+        });
+
+        // ページ離脱前の確認
+        window.addEventListener('beforeunload', function(e) {
+            const status = document.getElementById('statusBadge').textContent;
+            if (status === '実行中' || status === 'RUNNING') {
+                e.preventDefault();
+                e.returnValue = 'レビューが実行中です。ページを離れますか？';
+                return 'レビューが実行中です。ページを離れますか？';
+            }
+        });
+    </script>
+</div>
+</html>

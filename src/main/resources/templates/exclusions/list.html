@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='除外設定', content=~{::content})">
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/repositories">リポジトリ</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/repositories/{id}(id=${repository.id})}" th:text="${repository.name}"></a>
+                    </li>
+                    <li class="breadcrumb-item active">除外設定</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-filter me-2 text-primary"></i>
+                    除外設定
+                    <small class="text-muted">- <span th:text="${repository.name}"></span></small>
+                </h1>
+                <div class="btn-group" role="group">
+                    <a th:href="@{/exclusions/new(repositoryId=${repository.id})}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>新規追加
+                    </a>
+                    <a th:href="@{/exclusions/next(repositoryId=${repository.id})}" class="btn btn-success">
+                        <i class="fas fa-arrow-right me-2"></i>レビュー実行へ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 説明パネル -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>除外設定について</h6>
+                <p class="mb-0">
+                    レビュー対象から除外するファイルやディレクトリを設定できます。
+                    Unityプロジェクトでは通常、以下のファイル・フォルダを除外することをお勧めします：
+                    <code>Library/</code>, <code>Temp/</code>, <code>*.meta</code>, <code>*.asset</code>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 除外設定一覧 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        設定一覧
+                        <span class="badge bg-secondary ms-2" th:text="${#lists.size(exclusions)}"></span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(exclusions)}" class="text-center py-5">
+                        <i class="fas fa-filter fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-3">まだ除外設定が登録されていません。</p>
+                        <a th:href="@{/exclusions/new(repositoryId=${repository.id})}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>最初の除外設定を追加
+                        </a>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(exclusions)}">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%">タイプ</th>
+                                    <th style="width: 35%">パス</th>
+                                    <th style="width: 20%">パターン</th>
+                                    <th style="width: 20%">説明</th>
+                                    <th style="width: 10%" class="text-end">アクション</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="exclusion : ${exclusions}">
+                                    <td>
+                                            <span th:class="'badge ' +
+                                                  (${exclusion.exclusionType.name()} == 'FILE' ? 'bg-info' :
+                                                   ${exclusion.exclusionType.name()} == 'DIRECTORY' ? 'bg-warning' :
+                                                   ${exclusion.exclusionType.name()} == 'PATTERN' ? 'bg-success' : 'bg-secondary')"
+                                                  th:text="${exclusion.exclusionType.name() == 'FILE' ? 'ファイル' :
+                                                           exclusion.exclusionType.name() == 'DIRECTORY' ? 'フォルダ' :
+                                                           exclusion.exclusionType.name() == 'PATTERN' ? 'パターン' : '拡張子'}"></span>
+                                    </td>
+                                    <td>
+                                        <code th:text="${exclusion.path}"></code>
+                                    </td>
+                                    <td>
+                                        <code th:if="${exclusion.pattern}" th:text="${exclusion.pattern}"></code>
+                                        <span th:unless="${exclusion.pattern}" class="text-muted">-</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${exclusion.description}" th:text="${exclusion.description}"></span>
+                                        <span th:unless="${exclusion.description}" class="text-muted">-</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                title="削除"
+                                                th:onclick="|confirmDelete(${exclusion.id}, '${exclusion.path}')|">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unity推奨除外設定 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fab fa-unity me-2"></i>
+                        Unity推奨除外設定
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Unityプロジェクトで一般的に除外される項目です：</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">フォルダ</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-folder me-2 text-warning"></i><code>Library/</code> - Unityライブラリ</li>
+                                <li><i class="fas fa-folder me-2 text-warning"></i><code>Temp/</code> - 一時ファイル</li>
+                                <li><i class="fas fa-folder me-2 text-warning"></i><code>obj/</code> - ビルド一時ファイル</li>
+                                <li><i class="fas fa-folder me-2 text-warning"></i><code>Logs/</code> - ログファイル</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">ファイルパターン</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-file me-2 text-info"></i><code>*.meta</code> - メタファイル</li>
+                                <li><i class="fas fa-file me-2 text-info"></i><code>*.tmp</code> - 一時ファイル</li>
+                                <li><i class="fas fa-file me-2 text-info"></i><code>*.asset</code> - アセットファイル</li>
+                                <li><i class="fas fa-file me-2 text-info"></i><code>*.unity</code> - シーンファイル</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        削除確認
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>除外設定「<code id="deleteTargetPath"></code>」を削除しますか？</p>
+                    <p class="text-muted small">削除後は、次回レビュー実行時からこの設定が無効になります。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        キャンセル
+                    </button>
+                    <form id="deleteForm" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>削除
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmDelete(id, path) {
+            document.getElementById('deleteTargetPath').textContent = path;
+            document.getElementById('deleteForm').action = '/exclusions/' + id + '/delete';
+
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
+</div>
+</html>

@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="layout :: base(title='除外設定作成', content=~{::content})">
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/repositories">リポジトリ</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/repositories/{id}(id=${repository.id})}" th:text="${repository.name}"></a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a th:href="@{/exclusions(repositoryId=${repository.id})}">除外設定</a>
+                    </li>
+                    <li class="breadcrumb-item active">新規作成</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        除外設定作成
+                        <small class="text-muted">- <span th:text="${repository.name}"></span></small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/exclusions/new}" th:object="${exclusionForm}" method="post" novalidate>
+                        <input type="hidden" th:field="*{repositoryId}">
+
+                        <!-- 除外タイプ -->
+                        <div class="mb-3">
+                            <label for="exclusionType" class="form-label">
+                                除外タイプ <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select"
+                                    th:field="*{exclusionType}"
+                                    th:class="${#fields.hasErrors('exclusionType')} ? 'form-select is-invalid' : 'form-select'"
+                                    id="exclusionType" onchange="updateFormByType()">
+                                <option th:each="type : ${exclusionTypes}"
+                                        th:value="${type.name()}"
+                                        th:text="${type.name() == 'FILE' ? 'ファイル' :
+                                                 type.name() == 'DIRECTORY' ? 'ディレクトリ' :
+                                                 type.name() == 'PATTERN' ? 'パターン' : '拡張子'}"></option>
+                            </select>
+                            <div th:if="${#fields.hasErrors('exclusionType')}" class="invalid-feedback">
+                                <span th:errors="*{exclusionType}"></span>
+                            </div>
+                            <div class="form-text">
+                                除外する対象のタイプを選択してください。
+                            </div>
+                        </div>
+
+                        <!-- パス -->
+                        <div class="mb-3">
+                            <label for="path" class="form-label">
+                                パス <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control"
+                                   th:field="*{path}"
+                                   th:class="${#fields.hasErrors('path')} ? 'form-control is-invalid' : 'form-control'"
+                                   id="path" placeholder="例: Assets/Scripts/Test.cs">
+                            <div th:if="${#fields.hasErrors('path')}" class="invalid-feedback">
+                                <span th:errors="*{path}"></span>
+                            </div>
+                            <div class="form-text" id="pathHelpText">
+                                除外対象のパスを指定してください。
+                            </div>
+                        </div>
+
+                        <!-- パターン -->
+                        <div class="mb-3" id="patternField">
+                            <label for="pattern" class="form-label">パターン</label>
+                            <input type="text" class="form-control"
+                                   th:field="*{pattern}"
+                                   th:class="${#fields.hasErrors('pattern')} ? 'form-control is-invalid' : 'form-control'"
+                                   id="pattern" placeholder="例: *.meta">
+                            <div th:if="${#fields.hasErrors('pattern')}" class="invalid-feedback">
+                                <span th:errors="*{pattern}"></span>
+                            </div>
+                            <div class="form-text" id="patternHelpText">
+                                パターンタイプの場合、マッチングパターンを指定してください。
+                            </div>
+                        </div>
+
+                        <!-- 説明 -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label">説明</label>
+                            <textarea class="form-control"
+                                      th:field="*{description}"
+                                      th:class="${#fields.hasErrors('description')} ? 'form-control is-invalid' : 'form-control'"
+                                      id="description" rows="3"
+                                      placeholder="この除外設定の説明を入力してください（任意）"></textarea>
+                            <div th:if="${#fields.hasErrors('description')}" class="invalid-feedback">
+                                <span th:errors="*{description}"></span>
+                            </div>
+                        </div>
+
+                        <!-- 送信ボタン -->
+                        <div class="d-flex justify-content-between">
+                            <a th:href="@{/exclusions(repositoryId=${repository.id})}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>戻る
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>作成
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 入力例 -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        入力例
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-info">ファイル除外</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>パス:</strong> <code>Assets/Scripts/Test.cs</code></li>
+                                <li><strong>説明:</strong> 特定のファイルを除外</li>
+                            </ul>
+
+                            <h6 class="text-warning mt-3">ディレクトリ除外</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>パス:</strong> <code>Library/</code></li>
+                                <li><strong>説明:</strong> Unityライブラリフォルダを除外</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">パターン除外</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>パス:</strong> <code>Assets/</code></li>
+                                <li><strong>パターン:</strong> <code>*.meta</code></li>
+                                <li><strong>説明:</strong> metaファイルを除外</li>
+                            </ul>
+
+                            <h6 class="text-secondary mt-3">拡張子除外</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>パス:</strong> <code>/</code></li>
+                                <li><strong>パターン:</strong> <code>tmp</code></li>
+                                <li><strong>説明:</strong> 一時ファイルを除外</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unity推奨プリセット -->
+            <div class="card mt-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fab fa-unity me-2"></i>
+                        Unity推奨プリセット
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">以下のボタンをクリックすると、フォームに推奨設定が入力されます：</p>
+                    <div class="btn-group-vertical w-100" role="group">
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="applyPreset('DIRECTORY', 'Library/', '', 'Unityライブラリフォルダ')">
+                            <i class="fas fa-folder me-2"></i>Library/ フォルダを除外
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="applyPreset('DIRECTORY', 'Temp/', '', '一時ファイルフォルダ')">
+                            <i class="fas fa-folder me-2"></i>Temp/ フォルダを除外
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="applyPreset('PATTERN', 'Assets/', '*.meta', 'Unityメタファイル')">
+                            <i class="fas fa-file me-2"></i>*.meta ファイルを除外
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="applyPreset('EXTENSION', '/', 'tmp', '一時ファイル')">
+                            <i class="fas fa-file me-2"></i>.tmp ファイルを除外
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateFormByType() {
+            const typeSelect = document.getElementById('exclusionType');
+            const pathInput = document.getElementById('path');
+            const patternField = document.getElementById('patternField');
+            const pathHelpText = document.getElementById('pathHelpText');
+            const patternHelpText = document.getElementById('patternHelpText');
+
+            const selectedType = typeSelect.value;
+
+            switch(selectedType) {
+                case 'FILE':
+                    pathInput.placeholder = '例: Assets/Scripts/Test.cs';
+                    pathHelpText.textContent = '除外する特定のファイルパスを指定してください。';
+                    patternField.style.display = 'none';
+                    break;
+                case 'DIRECTORY':
+                    pathInput.placeholder = '例: Library/';
+                    pathHelpText.textContent = '除外するディレクトリパスを指定してください。末尾に/を付けることをお勧めします。';
+                    patternField.style.display = 'none';
+                    break;
+                case 'PATTERN':
+                    pathInput.placeholder = '例: Assets/';
+                    pathHelpText.textContent = 'パターンマッチングを適用する基準ディレクトリを指定してください。';
+                    patternField.style.display = 'block';
+                    patternHelpText.textContent = 'ワイルドカードパターン（*.meta, *.asset等）を指定してください。';
+                    break;
+                case 'EXTENSION':
+                    pathInput.placeholder = '例: /';
+                    pathHelpText.textContent = '拡張子マッチングを適用する基準ディレクトリを指定してください。';
+                    patternField.style.display = 'block';
+                    patternHelpText.textContent = '除外する拡張子（拡張子のドット.は不要）を指定してください。';
+                    break;
+            }
+        }
+
+        function applyPreset(type, path, pattern, description) {
+            document.getElementById('exclusionType').value = type;
+            document.getElementById('path').value = path;
+            document.getElementById('pattern').value = pattern;
+            document.getElementById('description').value = description;
+            updateFormByType();
+        }
+
+        // ページ読み込み時に初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateFormByType();
+        });
+    </script>
+</div>
+</html>
